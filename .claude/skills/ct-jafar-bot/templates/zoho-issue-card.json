@@ -1,0 +1,107 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "🧞",
+              "size": "large"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "JAFAR",
+              "weight": "bolder",
+              "size": "small",
+              "color": "warning",
+              "spacing": "none"
+            },
+            {
+              "type": "TextBlock",
+              "text": "New Zoho Projects Bug",
+              "weight": "bolder",
+              "size": "medium",
+              "spacing": "none"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "auto",
+          "verticalContentAlignment": "center",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "#${issue_id}",
+              "size": "small",
+              "isSubtle": true,
+              "horizontalAlignment": "right"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "style": "warning",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "${title}",
+          "weight": "bolder",
+          "size": "large",
+          "wrap": true
+        },
+        {
+          "type": "TextBlock",
+          "text": "📁 ${project}",
+          "spacing": "small",
+          "isSubtle": true,
+          "wrap": true
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Reporter", "value": "${reporter}" },
+        { "title": "Assignee", "value": "${assignee}" },
+        { "title": "Due",      "value": "${due_date}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "DESCRIPTION",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${description}",
+      "wrap": true,
+      "size": "small"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open in Zoho Projects",
+      "url": "https://projects.zoho.com/portal/crunchy#zp/issues/custom-view/763637000016633093/list/issue-detail/${issue_id}?group_by=none"
+    }
+  ]
+}
