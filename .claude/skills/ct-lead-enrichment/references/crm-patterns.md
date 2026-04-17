@@ -1,7 +1,7 @@
 # Zoho CRM MCP Patterns
 
 ## Key IDs
-- Zoho CRM Org: accessed via Mint-MCP (finance-zoho)
+- Zoho CRM Org ID: 45247585 (base URL: https://crm.zoho.com/crm/org45247585/)
 - Zoho Desk Org: 45524447
 - Zoho Projects Portal: 45517604
 - Leads Module ID: 1351252000000002175
