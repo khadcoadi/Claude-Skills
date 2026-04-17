@@ -82,22 +82,27 @@ The script outputs success/failure. On success you'll see an Activity ID.
 | `${company}` | Lead Company | Crafty Rooster |
 | `${icp_fit}` | Enrichment output | Strong |
 | `${icp_score}` | Enrichment output | 85 |
-| `${fit_color}` | Derived from ICP_Fit | good |
+| `${fit_color}` | Derived from ICP_Fit (see color map) | good |
 | `${city}` | Lead City | Conway |
 | `${state}` | Lead State | AR |
 | `${lead_source}` | Lead Lead_Source | Facebook Ad |
 | `${campaign}` | Lead FB_Campaign or Campaign | Sports Bar Retarget Q1 |
 | `${venue_type}` | Enrichment output | Sports Bar |
 | `${google_rating}` | Enrichment output | 4.3 / 589 reviews |
-| `${visits_summary}` | Built from visit fields | 3 visits over 5 days, 4.2 min avg |
+| `${visits_summary}` | Built from visit fields | 3 visits over 5 days, 4.2 min avg, sports bar ad |
+| `${location_count}` | Number of locations from enrichment | 3 locations |
 | `${lead_message}` | Lead Message, truncated ~120 chars | I need AV for 2 locations |
 | `${hooks_formatted}` | Enrichment hooks, newline-separated | 1. He owns 2 locations... |
-| `${recommended_action}` | Enrichment output | Call this week |
-| `${action_color}` | Derived from action type | good |
+| `${recommended_action}` | Enrichment output | Call this week — owner of established sports bar, expanding to second location |
+| `${action_color}` | Derived from action type (see color map) | good |
+| `${action_style}` | Card container style from action type (see style map) | good |
 | `${lead_id}` | Lead record ID | 1351252000012345678 |
 | `${org_id}` | Zoho CRM org ID | (your org ID) |
 | `${phone}` | Lead Phone | 5015551234 |
 | `${enrichment_timestamp}` | Current date/time | 2026-03-22 08:15 ET |
+| `${venue_url}` | Website URL, or Facebook page URL if no website | https://www.facebook.com/p/SomeVenue |
+| `${article_url}` | Press article URL from enrichment | https://www.al.com/life/2026/02/... |
+| `${article_title}` | Short article headline for button label | AL.com: New restaurant coming |
 
 **ICP Fit color map:**
 
@@ -116,10 +121,30 @@ The script outputs success/failure. On success you'll see an Activity ID.
 | Email | accent |
 | Nurture | warning |
 | Disqualify | attention |
+| Manual Research Needed | default |
+
+**Action style map** (for the recommended action container):
+
+| Action | `${action_style}` |
+|---|---|
+| Call | good |
+| Email | accent |
+| Nurture | warning |
+| Disqualify | attention |
+| Manual Research Needed | default |
+
+**Conditional buttons — View Venue and Article:**
+
+The card template includes four action buttons: Open in CRM, Call, View Venue, and Article. The last two are conditional:
+
+- **View Venue:** If a website URL was found, use it. If no website but a Facebook page was found, use the Facebook URL. If neither was found, REMOVE the entire View Venue action from the actions array before sending.
+- **Article:** If a press article was found, use the article URL and set the button title to a short version of the headline (e.g., "📰 AL.com: New restaurant coming"). If no article was found, REMOVE the entire article action from the actions array before sending.
+
+When building the card, filter out any action where the URL placeholder is empty or wasn't replaced.
 
 **Building visits_summary:**
 
-Combine: `Days_Visited` → "{N} visit(s)", `Average_Time_Spent_Minutes` → "{N} min avg", source context from `FB_Campaign` or `Lead_Source`. If Days_Visited is null/0, use "No visit data".
+Combine: `Days_Visited` → "{N} visit(s)", `Average_Time_Spent_Minutes` → "{N} min avg", source context from `FB_Campaign` or `Lead_Source`. Examples: "3 visits over 5 days, 4.2 min avg, sports bar ad" or "1 visit, under a minute". If Days_Visited is null/0, use "No visit data".
 
 ---
 

@@ -1,0 +1,131 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${status_emoji} ${status_badge}",
+                  "weight": "bolder",
+                  "size": "small",
+                  "color": "${score_color}",
+                  "spacing": "none"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${title}",
+                  "weight": "bolder",
+                  "size": "medium",
+                  "wrap": true,
+                  "spacing": "small"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "center",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${match_score}/10",
+                  "weight": "bolder",
+                  "size": "extraLarge",
+                  "color": "${score_color}",
+                  "horizontalAlignment": "right"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "CT Match",
+                  "size": "small",
+                  "horizontalAlignment": "right",
+                  "spacing": "none",
+                  "isSubtle": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Sol #", "value": "${sol_number}" },
+        { "title": "Agency", "value": "${agency}" },
+        { "title": "Location", "value": "${location}" },
+        { "title": "Deadline", "value": "${deadline} (${days_remaining})" },
+        { "title": "Set-aside", "value": "${set_aside}" },
+        { "title": "NAICS", "value": "${naics}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "SCOPE",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${scope_summary}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "PLATFORMS",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${platforms}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "RED FLAGS",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${red_flags}",
+      "wrap": true,
+      "size": "small",
+      "color": "attention"
+    },
+    {
+      "type": "TextBlock",
+      "text": "POC: ${poc_name} \u2014 ${poc_email}",
+      "size": "small",
+      "isSubtle": true,
+      "spacing": "medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "View on SAM.gov",
+      "url": "https://sam.gov/opp/${notice_id}/view"
+    }
+  ]
+}

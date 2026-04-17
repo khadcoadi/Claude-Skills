@@ -1,0 +1,131 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${urgency_emoji} ${urgency_label}",
+                  "weight": "bolder",
+                  "size": "small",
+                  "color": "${urgency_color}",
+                  "spacing": "none"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${venue_name}",
+                  "weight": "bolder",
+                  "size": "large",
+                  "wrap": true,
+                  "spacing": "small"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${city_suburb}",
+                  "size": "medium",
+                  "isSubtle": true,
+                  "spacing": "none"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Est. Size", "value": "${est_size}" },
+        { "title": "Opens", "value": "${opening_timeline}" },
+        { "title": "Stage", "value": "${pipeline_stage}" },
+        { "title": "Concept", "value": "${concept}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "WHY CT",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${why_ct}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "HOOK",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "\u201c${hook}\u201d",
+      "wrap": true,
+      "size": "small",
+      "isSubtle": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "PRIMARY CONTACT",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "${contact_name}",
+              "weight": "bolder",
+              "size": "small"
+            },
+            {
+              "type": "TextBlock",
+              "text": "${contact_title}",
+              "size": "small",
+              "isSubtle": true,
+              "spacing": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Source: ${source_info}",
+      "size": "small",
+      "isSubtle": true,
+      "spacing": "medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "LinkedIn Profile",
+      "url": "${linkedin_url}"
+    }
+  ]
+}

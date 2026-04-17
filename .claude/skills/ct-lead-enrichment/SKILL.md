@@ -41,11 +41,13 @@ From the data above, note:
 - Did they read a content page (article URL, not just landing page)?
 - Were they retargeted (different campaign on return)?
 
-**1C — Web Research (1-3 searches per lead)**
+**1C — Web Research (1-5 searches per lead)**
 
 Search 1: `{Company} {City} {State}` — business validation, Google rating, Yelp, website
 Search 2 (if business found): `{Company} owner` OR `{Company} renovation` — ownership, growth signals
-Search 3 (if website found): WebFetch on the business website
+Search 3 (if website found): WebFetch on the business website. **If NO website found:** search `{Company} {City} facebook` — grab the Facebook business page URL. Many small bars and restaurants have no website but have an active Facebook page with photos, hours, menus, and event posts. That Facebook page becomes the web presence for enrichment purposes — check it for TV photos, event posts, renovation announcements, and ownership info.
+Search 4: `{Company} {City} {State} {Lead Full_Name}` — press and article search. Look for local news coverage: openings, renovations, features, profiles, reviews by journalists. These are high-value hooks — the rep can reference them on the call ("Saw the piece in AL.com about the Gulf Shores opening"). If an article is found, fetch it to extract details that inform hooks and discovery questions.
+Search 5 (if article found): WebFetch on the article URL to pull details for hooks.
 
 If Company field is garbage (a sentence, not a name): search by lead name + city, or parse Message field. If nothing found, note "No verifiable business found."
 
@@ -88,8 +90,8 @@ Map to ICP_Fit: 75-100=Strong, 40-74=Moderate, 10-39=Weak, 0-9=Unknown
 **IMPORTANT: Visit and ad data from Step 1B gets woven INTO the existing sections — it does NOT get its own section.** Specifically:
 - LEAD SNAPSHOT: Source line includes campaign name and landing page. Visit stats on the next line.
 - DUE DILIGENCE: Mention visit behavior in the narrative when it changes the read on the lead (multi-visit = warmer, long time on page = engaged, impulse click = set expectations). Don't mention it if it's unremarkable.
-- HOOKS: If visit data gives the rep ammo ("she came back 3 times"), put it in a hook.
-- DISCOVERY QUESTIONS: If the landing page tells you what they were looking at, reference it in a question.
+- HOOKS: If visit data gives the rep ammo ("she came back 3 times"), put it in a hook. If a press article was found, reference it as a hook — "Mention the AL.com article about the Gulf Shores opening. Shows you did homework." Press references are high-value hooks because they make the rep sound informed and give a natural conversation opener.
+- DISCOVERY QUESTIONS: If the landing page tells you what they were looking at, reference it in a question. If a press article revealed details (new concept, opening timeline, ownership change), build a question around it.
 - ICP SCORING: Signal 6 uses the actual numbers from Days_Visited, Average_Time_Spent_Minutes, and Visitor_Score.
 
 For ALL leads:
@@ -152,7 +154,8 @@ LEAD SNAPSHOT
 ---
 
 DUE DILIGENCE
-{business validation, Google rating, website, owner confirmation}
+{business validation, Google rating, website or Facebook page, owner confirmation, size estimate}
+{Press: article reference if found}
 {⚠️ ADDRESS CORRECTION if applicable}
 {Growth signals if found}
 {⚠️ No business found if applicable}
