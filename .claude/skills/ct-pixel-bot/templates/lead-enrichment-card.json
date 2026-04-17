@@ -147,7 +147,7 @@
     {
       "type": "Action.OpenUrl",
       "title": "Open in CRM",
-      "url": "https://crm.zoho.com/crm/org${org_id}/tab/Leads/${lead_id}"
+      "url": "https://crm.zoho.com/crm/org45247585/tab/Leads/${lead_id}"
     },
     {
       "type": "Action.OpenUrl",

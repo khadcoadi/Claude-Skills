@@ -260,6 +260,38 @@ If field updates fail (fields not created yet), the Note is still valid. Log the
 
 ---
 
+### ========================================
+### STAGE 4: PIXEL NOTIFICATION
+### ========================================
+
+After CRM writes complete, send a Pixel bot card to the assigned rep only.
+
+**4A — Determine recipient**
+
+Map the lead's Owner ID to the rep name:
+- 1351252000153431001 = Kevin Lacayo
+- 1351252000000162033 = Leonardo Moretti
+- 1351252000001578206 = TJ Paone
+
+Send to the assigned rep only. Do NOT send copies to Adi Khanna or any other team member.
+
+**4B — Build and send the card**
+
+1. Read `ct-pixel-bot/templates/lead-enrichment-card.json`
+2. Replace all ${placeholder} values (see ct-pixel-bot/SKILL.md for the full placeholder list)
+3. Sanitize values: escape double quotes, replace newlines with \n
+4. Write populated card to `/tmp/pixel-card-{lead_id}.json`
+5. Send:
+```
+bash ct-pixel-bot/send-message.sh "{Rep Name}" --card /tmp/pixel-card-{lead_id}.json
+```
+
+**4C — Error handling**
+
+If Pixel delivery fails, log the error and continue. The CRM note is the primary deliverable — a Pixel failure does not fail the enrichment.
+
+---
+
 ## SUMMARY REPORT
 
 After all leads processed:
