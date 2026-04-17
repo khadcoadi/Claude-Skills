@@ -1,0 +1,128 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "NEW LEAD ENRICHED",
+                  "weight": "bolder",
+                  "size": "small",
+                  "color": "accent",
+                  "spacing": "none"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${full_name} \u2014 ${company}",
+                  "weight": "bolder",
+                  "size": "large",
+                  "wrap": true,
+                  "spacing": "small"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "center",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${icp_fit}",
+                  "weight": "bolder",
+                  "size": "medium",
+                  "color": "${fit_color}",
+                  "horizontalAlignment": "right"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${icp_score}/100",
+                  "size": "small",
+                  "horizontalAlignment": "right",
+                  "spacing": "none"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Location", "value": "${city}, ${state}" },
+        { "title": "Source", "value": "${lead_source} \u2014 ${campaign}" },
+        { "title": "Venue Type", "value": "${venue_type}" },
+        { "title": "Google", "value": "${google_rating}" },
+        { "title": "Visits", "value": "${visits_summary}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "\u201c${lead_message}\u201d",
+      "wrap": true,
+      "size": "medium",
+      "isSubtle": true,
+      "spacing": "medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "HOOKS FOR THE CALL",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${hooks_formatted}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "RECOMMENDED ACTION",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${recommended_action}",
+      "wrap": true,
+      "weight": "bolder",
+      "color": "${action_color}"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Enriched: ${enrichment_timestamp}",
+      "size": "small",
+      "isSubtle": true,
+      "spacing": "medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open in CRM",
+      "url": "https://crm.zoho.com/crm/org${org_id}/tab/Leads/${lead_id}"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "Call Lead",
+      "url": "tel:${phone}"
+    }
+  ]
+}
