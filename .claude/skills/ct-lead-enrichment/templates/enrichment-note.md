@@ -41,9 +41,11 @@ DUE DILIGENCE
 Only mention visit behavior when it changes the read on the lead. A single 2-minute visit with nothing notable doesn't need a sentence.}
 
 Google: {rating} / {review count} reviews
-Website: {URL if found, or "None found"}
+Website: {URL if found} | Facebook: {Facebook page URL if no website} | None found
 Owner: {Confirmed as owner/operator if verified, or "Not confirmed" if unknown}
 Size estimate: {Small (under 1,000 sqft / under 5 employees) | Mid (1,000-3,000 sqft / 10-20 employees) | Large (3,000+ sqft / 20+ employees) | Unknown} — {basis for estimate, e.g., "BBB lists 5-9 employees, reviews say 'small pub'" or "multiple zones mentioned, seats 200+ per event page"}
+Press: {article title} — {source} — {URL} | None found
+{If article found, pull key details into hooks — the rep can reference it: "Saw the piece in [source] about [topic]."}
 
 {If address correction needed:}
 ⚠️ ADDRESS CORRECTION: {Company} is at {correct address}, not {CRM address}. The CRM city/state should be updated.
