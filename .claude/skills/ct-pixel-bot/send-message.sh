@@ -3,7 +3,7 @@
 # Pixel Bot — Send Teams DM
 # Usage:
 #   bash send-message.sh "Recipient Name" "Your message here"
-#   bash send-message.sh "Recipient Name" --card /path/to/card.json
+#   bash send-message.sh "Recipient Name" --card /path/to/card.json --summary "Notification text"
 # ============================================
 
 # --- CREDENTIALS ---
@@ -28,21 +28,39 @@ fi
 RECIPIENT_NAME="$1"
 shift
 
-if [ "$1" = "--card" ]; then
-  CARD_FILE="$2"
+CARD_FILE=""
+CARD_SUMMARY=""
+MESSAGE_TEXT=""
+MESSAGE_MODE="text"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --card)
+      CARD_FILE="$2"
+      MESSAGE_MODE="card"
+      shift 2
+      ;;
+    --summary)
+      CARD_SUMMARY="$2"
+      shift 2
+      ;;
+    *)
+      MESSAGE_TEXT="${MESSAGE_TEXT:+$MESSAGE_TEXT }$1"
+      shift
+      ;;
+  esac
+done
+
+if [ "$MESSAGE_MODE" = "card" ]; then
   if [ ! -f "$CARD_FILE" ]; then
     echo "ERROR: Card file not found: $CARD_FILE"
     exit 1
   fi
-  MESSAGE_MODE="card"
-else
-  MESSAGE_TEXT="$*"
-  if [ -z "$MESSAGE_TEXT" ]; then
-    echo "ERROR: No message specified."
-    echo "Usage: bash send-message.sh \"Recipient Name\" \"Message text\""
-    exit 1
-  fi
-  MESSAGE_MODE="text"
+elif [ -z "$MESSAGE_TEXT" ]; then
+  echo "ERROR: No message specified."
+  echo "Usage: bash send-message.sh \"Recipient Name\" \"Message text\""
+  echo "       bash send-message.sh \"Recipient Name\" --card /path/to/card.json --summary \"Notification text\""
+  exit 1
 fi
 
 # --- LOOK UP RECIPIENT ---
@@ -186,13 +204,29 @@ with open('${CONV_CACHE}', 'w') as f:
 # --- SEND MESSAGE ---
 send_message() {
   if [ "$MESSAGE_MODE" = "card" ]; then
-    CARD_CONTENT=$(cat "$CARD_FILE")
     BODY=$(python3 -c "
 import json, sys
 with open('${CARD_FILE}') as f:
     card = json.load(f)
+summary = '''${CARD_SUMMARY}'''
+if not summary:
+    for item in card.get('body', []):
+        if item.get('type') == 'Container':
+            for sub in item.get('items', []):
+                if sub.get('type') == 'ColumnSet':
+                    for col in sub.get('columns', []):
+                        for ci in col.get('items', []):
+                            t = ci.get('text', '')
+                            if '\u2014' in t and '\${' not in t:
+                                summary = t
+                                break
+        if summary:
+            break
+if not summary:
+    summary = 'New notification from Pixel'
 payload = {
     'type': 'message',
+    'summary': summary,
     'attachments': [{
         'contentType': 'application/vnd.microsoft.card.adaptive',
         'content': card

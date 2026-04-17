@@ -53,10 +53,14 @@ bash ct-pixel-bot/send-message.sh "Recipient Name" "Your message here"
 2. Replace all `${placeholder}` values with actual data
 3. Validate the JSON
 4. Write to a temp file
-5. Send:
+5. Send with a `--summary` so the Teams notification shows context instead of "Sent a card":
 ```bash
-bash ct-pixel-bot/send-message.sh "Recipient Name" --card /tmp/card-file.json
+bash ct-pixel-bot/send-message.sh "Recipient Name" --card /tmp/card-file.json --summary "⚡ New Lead: Sean Kobos — Crafty Rooster (Strong 85/100)"
 ```
+
+The `--summary` text appears in the Teams notification toast and chat preview. Keep it under ~100 chars. For lead enrichment cards, use: `⚡ New Lead: {Full_Name} — {Company} ({ICP_Fit} {ICP_Score}/100)`
+
+If `--summary` is omitted, the script auto-extracts text from the card body (the name/company line), but explicit is better.
 
 ### Step 3: Confirm delivery
 
