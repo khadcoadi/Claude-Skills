@@ -152,6 +152,61 @@ Combine: `Days_Visited` → "{N} visit(s)", `Average_Time_Spent_Minutes` → "{N
 
 ---
 
+### Gov Bid Notification Card
+
+**File:** `templates/pixel-gov-bid-notification-card.json`
+
+**Type name:** `gov-bid-notification`
+
+**When:** After ct-gov-potential-push creates a Deal in Zoho CRM for a qualifying government AV opportunity. Sent to the assigned sales rep (Kevin or Leo).
+
+**Recipient:** The rep assigned to the opportunity (Kevin Lacayo or Leonardo Moretti).
+
+**Summary line:**
+```
+⚡ New Gov Bid: {title} — {days_remaining} to bid
+```
+
+**Placeholders:**
+
+| Placeholder | Source | Example |
+|---|---|---|
+| `${title}` | Deal name / opportunity title | Commander's Conference Room Upgrade |
+| `${sol_number}` | SAM.gov solicitation number | FA857126Q0048 |
+| `${agency}` | Contracting agency | Department of the Air Force |
+| `${location}` | Installation and state | Robins AFB, GA |
+| `${deadline}` | Bid due date formatted | Mar 23, 2026 4:30 PM EDT |
+| `${days_remaining}` | Calculated days until deadline | 4 days |
+| `${set_aside}` | Set-aside type | Small Business |
+| `${type_of_system}` | AV system type | Meeting Space |
+| `${bid_submission_style}` | How to submit | Email |
+| `${poc_name}` | Contracting officer name | Patrick Madan |
+| `${poc_email}` | Contracting officer email | patrick.madan.2@us.af.mil |
+| `${match_score}` | CT match score 1–10 | 7 |
+| `${score_color}` | Adaptive Card color keyword | good |
+| `${scope_summary}` | 2–3 sentence scope description | Replace existing AV in... |
+| `${red_flags}` | Top 3 flags, newline-separated with Red:/Yellow: prefix | Red: Tight 30-day install window\nYellow: Davis-Bacon applies |
+| `${notice_id}` | SAM.gov notice ID | b1f9d43b2c2c4a2fa1b77c4c8c943b12 |
+| `${zoho_deal_url}` | Full Zoho CRM Deal URL | https://crm.zoho.com/crm/org45247585/tab/Potentials/1351252000012345678 |
+| `${deal_created_at}` | Timestamp when Deal was created | 2026-03-22 09:41 ET |
+
+**Score color map:**
+
+| CT Score | `${score_color}` |
+|---|---|
+| 7–10 | good |
+| 4–6 | warning |
+| 1–3 | attention |
+
+**Calling this card from ct-gov-potential-push:**
+```bash
+bash ct-pixel-bot/send-message.sh "Kevin Lacayo" \
+  --card /tmp/pixel-gov-bid-card-${sol_num}.json \
+  --summary "⚡ New Gov Bid: ${title} — ${days_remaining} to bid"
+```
+
+---
+
 ## Populating a Card
 
 ```python
