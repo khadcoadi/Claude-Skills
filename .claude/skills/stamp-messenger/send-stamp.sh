@@ -204,6 +204,8 @@ payload = {
         for c in cards
     ],
 }
+if len(cards) > 1:
+    payload["attachmentLayout"] = "carousel"
 print(json.dumps(payload))
 PYEOF
 )
