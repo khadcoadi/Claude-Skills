@@ -40,6 +40,14 @@ there is nobody to reply. Follow these rules:
 - **Brief updates are fine**, but only when attached to a tool call in the
   same turn (e.g., one sentence of context + the next Bash/Edit/Skill
   call). Standalone text = silent failure.
+- **No corpus echo.** Do not `print()`, `cat`, `head`, or `tail` the
+  contents of `corpus`, notice descriptions, or extracted PDF/DOCX/XLSX
+  text to the terminal. After `scored.json` exists, the only remaining
+  work on document contents happens *inside* a Python builder script
+  that reads `scored.json`, extracts fields with regex, and writes
+  payload JSON to disk. Echoing raw SOW text to stdout pulls it into
+  context, and a handful of 5–15K char dumps will exhaust the per-response
+  token budget before Step 10 runs.
 
 If you catch yourself about to output narration-only text, replace it with
 the next concrete tool call instead.
@@ -190,6 +198,19 @@ Clamp result to 1–10.
 
 For each `QUALIFIED` or `WARNING` opportunity, produce a full brief
 with all sections below. This is the primary deliverable.
+
+**Implementation shape — one builder, one Bash run.** Write a single
+Python builder script (`build_briefs.py`) that reads `scored.json`,
+iterates qualifying opps, extracts every field in 7a–7g via regex
+over the already-loaded `corpus`, and writes one
+`/tmp/stamp-payload-{sol_num}.json` per opp in a single execution.
+Do not open the corpus interactively between `scored.json` and the
+builder run — no `python3 -c "print(o['corpus'])"`, no `head`, no
+`cat`. If the builder misses a field for a specific opp, edit the
+builder and re-run it; do not hand-compose a brief around the gap.
+Start from `templates/build_briefs.py` in this skill's directory —
+adjust extractors if a solicitation has an unusual field shape, but
+do not rebuild the scaffold from scratch.
 
 ### 7a. Header block
 - Full title and solicitation number
