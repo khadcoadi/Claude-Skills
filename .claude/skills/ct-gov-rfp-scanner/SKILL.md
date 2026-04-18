@@ -1,22 +1,25 @@
 ---
 name: ct-gov-rfp-scanner
 description: >
-  Searches SAM.gov for government AV/conferencing/display RFPs and produces
-  full opportunity briefs with scope, programming/control analysis, Q&A
-  summary, red flags, and downloadable solicitation documents. Use whenever
-  someone says "scan SAM.gov", "find government AV bids", "run the RFP
-  scanner", "check for government opportunities", or asks about federal AV
-  solicitations. Also triggers on a schedule when no user prompt is present.
-  Always run this skill — do not attempt a SAM.gov search without it.
+  Searches SAM.gov for government AV/conferencing/display RFPs and delivers
+  Stamp approval cards with full opportunity briefs — scope, programming/
+  control analysis, Q&A summary, and red flags — to Adi for review. Use
+  whenever someone says "scan SAM.gov", "find government AV bids", "run
+  the RFP scanner", "check for government opportunities", or asks about
+  federal AV solicitations. Also triggers on a schedule when no user prompt
+  is present. Always run this skill — do not attempt a SAM.gov search
+  without it.
 ---
 
 # ct-gov-rfp-scanner
 
 Searches SAM.gov for government AV/conferencing/display solicitations,
-scans for disqualifiers, scores against CT's
-profile, and produces a full brief per qualifying opportunity including
-scope narrative, programming/control analysis, Q&A digest, red flags,
-and all documents available for download.
+downloads attachments for brief-building only (not surfaced to chat,
+not ZIPped), scans for disqualifiers, scores against CT's profile,
+and delivers one Stamp approval card per qualifying opportunity to
+Adi with full scope narrative, programming/control analysis, Q&A
+digest, and red flags. Document re-fetching for CRM attachment
+happens later in ct-gov-potential-push on approval.
 
 ---
 
@@ -133,9 +136,11 @@ For each opportunity that passed Steps 2–3:
    before downloading any attachments — mandatory site visit language
    almost always lives here, not in PDFs.
 
-2. **Download attachments** — up to 5 per opportunity. Skip JPEGs and
-   image-only files for text scanning (keep them for user download).
-   Fetch + write atomically with no delay between request and file write.
+2. **Download attachments** — up to 5 per opportunity into
+   `/tmp/gov-rfp-scan/attachments/{sol}/`. These are for brief-building
+   only — not ZIPped, not surfaced to chat, not attached anywhere.
+   Skip JPEGs and image-only files for text scanning. Fetch + write
+   atomically with no delay between request and file write.
 
 3. **Extract text** using `pdftotext -layout` → `pdfplumber` fallback
    → flag as unreadable. Combine description + doc text into a single
@@ -214,11 +219,12 @@ warranty term specified — defaults to manufacturer-only, no labor"`)
 rather than leaving it blank or guessing.
 
 ### 7a. Header block
+- Status + CT Match Score (`QUALIFIED ✅` or `WARNING ⚠️` + `Score: X/10`)
 - Full title and solicitation number
 - Agency, office, location (city/state/installation)
 - Posted date, response deadline with days remaining
 - NAICS code, set-aside type
-- CT Match Score / 10
+- POC — contracting officer name and email (one line)
 - SAM.gov URL: `https://sam.gov/opp/{noticeId}/view`
 
 ### 7b. Scope narrative
@@ -267,13 +273,13 @@ Extract and include:
   simple mirror = no)
 
 ### 7d. Q&A digest
-If a Q&A document was downloaded and parsed, summarize the 6–10
+If a Q&A document was downloaded and parsed, summarize the 4–6
 most operationally relevant exchanges as question → answer pairs.
 Focus on: room dimensions, existing equipment to reuse, structural
 unknowns, shipping/access constraints, network integration, and
 any clarifications that affect pricing.
 
-If no Q&A document is present, note that no Q&A was posted.
+If no Q&A document is present, note "No Q&A posted" in one line.
 
 ### 7e. Red flags
 List each flag as a short bolded label + 1–2 sentence explanation of
