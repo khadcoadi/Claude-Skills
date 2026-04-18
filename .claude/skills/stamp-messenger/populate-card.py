@@ -61,6 +61,9 @@ def populate(template_path, payload):
 
     push_payload_json = json.dumps(json.dumps(payload))[1:-1]
 
+    detailed_flags = payload.get("detailed_flags") or red_flags_text(payload.get("warnings", []))
+    programming_scope = payload.get("programming_scope") or "Not specified — review scope before assigning resource."
+
     replacements = {
         "${title}": payload.get("title", ""),
         "${sol_number}": payload.get("sol_num", ""),
@@ -75,8 +78,10 @@ def populate(template_path, payload):
         "${match_score}": str(score),
         "${score_color}": score_color(score),
         "${status_badge}": payload.get("status", "QUALIFIED"),
-        "${scope_summary}": (payload.get("scope_summary") or payload.get("description") or "")[:800],
-        "${red_flags}": red_flags_text(payload.get("warnings", [])),
+        "${scope_summary}": (payload.get("scope_summary") or payload.get("description") or "")[:1200],
+        "${programming_scope}": programming_scope,
+        "${detailed_flags}": detailed_flags,
+        "${red_flags}": detailed_flags,
         "${poc_name}": payload.get("contact_name", "") or "—",
         "${poc_email}": payload.get("contact_email", ""),
         "${notice_id}": payload.get("notice_id", ""),

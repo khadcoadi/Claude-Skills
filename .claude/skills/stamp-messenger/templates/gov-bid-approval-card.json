@@ -95,6 +95,20 @@
     },
     {
       "type": "TextBlock",
+      "text": "PROGRAMMING & CUSTOM WORK",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${programming_scope}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
       "text": "FLAGS",
       "weight": "bolder",
       "size": "small",
@@ -103,7 +117,7 @@
     },
     {
       "type": "TextBlock",
-      "text": "${red_flags}",
+      "text": "${detailed_flags}",
       "wrap": true,
       "size": "small"
     },
