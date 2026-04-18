@@ -42,12 +42,14 @@ there is nobody to reply. Follow these rules:
   call). Standalone text = silent failure.
 - **No corpus echo.** Do not `print()`, `cat`, `head`, or `tail` the
   contents of `corpus`, notice descriptions, or extracted PDF/DOCX/XLSX
-  text to the terminal. After `scored.json` exists, the only remaining
-  work on document contents happens *inside* a Python builder script
-  that reads `scored.json`, extracts fields with regex, and writes
-  payload JSON to disk. Echoing raw SOW text to stdout pulls it into
-  context, and a handful of 5–15K char dumps will exhaust the per-response
-  token budget before Step 10 runs.
+  text to the terminal. After `scored.json` exists, use the Read tool
+  to pull corpus text per-opportunity from
+  `/tmp/gov-rfp-scan/corpus/{sol}.txt` — Read is a tool channel and
+  does not dump into the response. Compose the Stamp payload fields
+  (7a–7g) directly from what you read; write one
+  `/tmp/stamp-payload-{sol_num}.json` per opp. Echoing raw SOW text to
+  stdout pulls it into context and will exhaust the per-response token
+  budget before Step 10 runs.
 
 If you catch yourself about to output narration-only text, replace it with
 the next concrete tool call instead.
@@ -199,18 +201,17 @@ Clamp result to 1–10.
 For each `QUALIFIED` or `WARNING` opportunity, produce a full brief
 with all sections below. This is the primary deliverable.
 
-**Implementation shape — one builder, one Bash run.** Write a single
-Python builder script (`build_briefs.py`) that reads `scored.json`,
-iterates qualifying opps, extracts every field in 7a–7g via regex
-over the already-loaded `corpus`, and writes one
-`/tmp/stamp-payload-{sol_num}.json` per opp in a single execution.
-Do not open the corpus interactively between `scored.json` and the
-builder run — no `python3 -c "print(o['corpus'])"`, no `head`, no
-`cat`. If the builder misses a field for a specific opp, edit the
-builder and re-run it; do not hand-compose a brief around the gap.
-Start from `templates/build_briefs.py` in this skill's directory —
-adjust extractors if a solicitation has an unusual field shape, but
-do not rebuild the scaffold from scratch.
+**Implementation shape — Claude composes briefs directly.** After
+scoring, each qualifying opportunity's corpus is on disk at
+`/tmp/gov-rfp-scan/corpus/{sol}.txt` and its downloaded attachments
+at `/tmp/gov-rfp-scan/attachments/{sol}/`. Use the Read tool to pull
+each corpus, then compose every field in 7a–7g as prose or structured
+values and write one `/tmp/stamp-payload-{sol_num}.json` per opp.
+No regex scaffold, no Python builder — but also no `cat`/`head`/`tail`
+or `print()` on corpus text (see Execution Discipline). If the corpus
+lacks a field, state the default explicitly in the brief (e.g., `"No
+warranty term specified — defaults to manufacturer-only, no labor"`)
+rather than leaving it blank or guessing.
 
 ### 7a. Header block
 - Full title and solicitation number
@@ -333,9 +334,12 @@ compliant bid. Cover all of the following if present:
 
 ### 7g. Push payload
 
-The scanner does NOT download documents. Document downloading and
-attachment to CRM is handled by the ct-gov-potential-push skill at
-push time, using the notice ID to re-fetch fresh files from SAM.gov.
+The scanner keeps its own copies of downloaded attachments in
+`/tmp/gov-rfp-scan/attachments/{sol}/` for brief-building only —
+these are not ZIPped, not surfaced to chat, and not posted anywhere.
+ct-gov-potential-push re-fetches fresh documents from SAM.gov at
+approval time using the notice_id, because pre-signed S3 URLs and
+the scanner's local copies are long expired/stale by then.
 
 For each QUALIFIED or WARNING opportunity (except Presolicitations —
 see Step 10), build a structured push payload that feeds both the
@@ -401,34 +405,43 @@ stacked approval cards to Adi — see Step 10.
 
 ## Step 8 — Summary Table
 
-Before the detail cards, show a summary table of ALL results from the
-search (not just active ones) with columns:
+Open the response with a one-line stats header and a compact summary
+table covering ALL results (qualified, warning, disqualified, expired).
+This plus the final Step 10 log line are the only things posted in
+chat — full briefs go on the Stamp cards, not here.
 
-| Title | Sol # | Agency | Deadline | Set-aside | Status | Reason |
+**Stats line:**
 
-- `QUALIFIED` — passed all filters, no warnings
-- `WARNING` — passed filters but has warning flags
-- `DISQUALIFIED` — failed a hard disqualifier (include reason)
-- `EXPIRED_OR_SOON` — dropped by deadline filter (dim/gray)
+```
+🔍 {N} searches · {M} unique opps · {P} passed filter → ✅ {Q} qualified · ⚠️ {W} warning
+```
 
-Show expired rows at reduced opacity. Include the disqualification
-reason for every DQ'd row so the user can see the scanner's logic.
+**Table:**
+
+| Title (truncated) | Sol # | Agency | Deadline | Set-aside | Status | Reason |
+
+**Statuses:**
+- ✅ `QUALIFIED` — passed all filters, no warnings
+- ⚠️ `WARNING` — passed filters but has warning flags
+- ❌ `DISQUALIFIED` — failed a hard disqualifier (include one-phrase reason)
+- ⏱ `EXPIRED` — dropped by deadline filter
+
+Keep expired/disqualified rows brief — one reason phrase per row.
 
 ---
 
 ## Step 9 — Output Format
 
-Render using `visualize:show_widget` with:
-1. Stats row: searches run / unique opps / passed filter / qualified / warning
-2. Summary table (all results)
-3. One detail card per QUALIFIED or WARNING opportunity with all
-   sections from Step 7 (7a through 7g)
+Chat output is only the Step 8 stats line + summary table. Full
+per-opportunity briefs are delivered to Adi via Stamp approval cards
+in Step 10 — not in chat, not via `visualize:show_widget`, not as
+HTML files, and no `present_files` calls. Document ZIPs are not
+produced.
 
-No file downloads or `present_files` calls — document handling is
-fully delegated to ct-gov-potential-push at approval time.
-
-If zero qualified opportunities, say so clearly and list notable
-expired opportunities worth watching for re-solicitation.
+If zero qualified opportunities (or only Presolicitations), say so
+in one line after the table and note any expired opportunities worth
+watching for re-solicitation. Do not proceed to Step 10 in that case
+— there is nothing to send.
 
 ---
 
@@ -514,6 +527,11 @@ and inform the user they can be pushed manually.
 - Use `pip install pdfplumber python-docx --break-system-packages` if
   libraries are not installed
 - `pdftotext` is available via system path
-- Do not download solicitation documents — document fetching is handled
-  by ct-gov-potential-push at approval time using the notice_id
+- Scanner attachment storage: `/tmp/gov-rfp-scan/attachments/{sol}/`
+- Scanner corpus storage: `/tmp/gov-rfp-scan/corpus/{sol}.txt`
+- Scoring output: `/tmp/gov-rfp-scan/scored.json`
+- Clean all three at the start of every run to avoid stale data
+- ct-gov-potential-push does not read these local copies — it
+  re-fetches fresh documents from SAM.gov at approval time using
+  the notice_id
 - Do not push anything to Zoho CRM unless the user explicitly requests it
