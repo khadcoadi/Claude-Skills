@@ -1,16 +1,20 @@
 #!/bin/bash
 # ============================================
 # Stamp Messenger — Send Teams DM Approval Card(s)
-# Usage (single):
+#
+# Usage (single card):
 #   bash send-stamp.sh --recipient "Adi Khanna" \
-#     --subject "Subject line" --card /path/card.json \
+#     --subject "Subject line" --card /path/card-template.json \
 #     --payload /tmp/payload.json
 #
 # Usage (stacked — all cards in one message):
 #   bash send-stamp.sh --recipient "Adi Khanna" \
-#     --subject "Subject line" --card /path/card.json \
+#     --subject "Subject line" --card /path/card-template.json \
 #     --payload /tmp/payload1.json --payload /tmp/payload2.json \
 #     --stacked
+#
+# Card populate logic lives in populate-card.py so we avoid bash
+# heredoc escape hell. Send logic mirrors ct-pixel-bot/send-message.sh.
 # ============================================
 
 TENANT_ID="609b5b72-9a87-4376-825b-20726d50a60b"
@@ -19,7 +23,8 @@ CLIENT_SECRET="g4D8Q~UFYfFP3Jmd_76VXKWLWjY6ANO8ixIkVb17"
 
 SERVICE_URL="https://smba.trafficmanager.net/teams"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROSTER_FILE="${SCRIPT_DIR}/../references/team-roster.json"
+ROSTER_FILE="${SCRIPT_DIR}/references/team-roster.json"
+POPULATE_SCRIPT="${SCRIPT_DIR}/populate-card.py"
 TOKEN_CACHE="/tmp/stamp-token-cache.json"
 CONV_CACHE="/tmp/stamp-conversations.json"
 
@@ -46,10 +51,6 @@ if [ -z "$RECIPIENT_NAME" ] || [ -z "$CARD_FILE" ] || [ ${#PAYLOAD_FILES[@]} -eq
   exit 1
 fi
 
-if [ -z "$CLIENT_SECRET" ]; then
-  echo "ERROR: STAMP_CLIENT_SECRET environment variable not set."; exit 1
-fi
-
 # --- LOOK UP RECIPIENT ---
 AZURE_ID=$(python3 -c "
 import json, sys
@@ -66,90 +67,21 @@ print('')
 " 2>/dev/null)
 
 if [ -z "$AZURE_ID" ]; then
-  echo "ERROR: Recipient '${RECIPIENT_NAME}' not found in roster."; exit 1
+  echo "ERROR: Recipient '${RECIPIENT_NAME}' not found in roster."
+  exit 1
 fi
 
+echo "🛡️ Stamp Bot"
 echo "Recipient: ${RECIPIENT_NAME} (${AZURE_ID})"
 echo "Payloads: ${#PAYLOAD_FILES[@]} | Stacked: ${STACKED}"
-
-# --- POPULATE CARD FROM PAYLOAD ---
-populate_card() {
-  local payload_file="$1"
-  python3 << PYEOF
-import json, os
-from datetime import datetime
-
-with open('${payload_file}') as f:
-    payload = json.load(f)
-
-with open('${CARD_FILE}') as f:
-    card_str = f.read()
-
-try:
-    deadline_dt = datetime.strptime(payload.get('deadline', ''), '%Y-%m-%d')
-    days_rem = (deadline_dt - datetime.today()).days
-    days_remaining = f"{days_rem} day{'s' if days_rem != 1 else ''}"
-except:
-    days_remaining = 'check SAM.gov'
-
-score = payload.get('ct_score', 5)
-score_color = 'good' if score >= 7 else ('warning' if score >= 4 else 'attention')
-
-tos = payload.get('type_of_system', [])
-type_of_system = ', '.join(tos) if isinstance(tos, list) else str(tos)
-
-warnings = payload.get('warnings', [])
-red_flags_lines = []
-for w in warnings[:3]:
-    prefix = 'Red: ' if any(k in w.lower() for k in ['mandatory', 'clearance', 'scif', 'overseas', 'sla', 'install window', 'training']) else 'Yellow: '
-    red_flags_lines.append(prefix + w)
-red_flags = '\n'.join(red_flags_lines) if red_flags_lines else 'No flags'
-
-push_payload_json = json.dumps(payload).replace('"', '\\"')
-
-routine_fire_url = 'https://api.anthropic.com/v1/claude_code/routines/trig_01PFRCg73uCRpzGkG9wn2J2G/fire'
-routine_bearer_token = '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'
-
-replacements = {
-    '\${title}':                payload.get('title', ''),
-    '\${sol_number}':           payload.get('sol_num', ''),
-    '\${agency}':               payload.get('account_name', ''),
-    '\${location}':             payload.get('location', ''),
-    '\${deadline}':             payload.get('bid_due_date', ''),
-    '\${days_remaining}':       days_remaining,
-    '\${set_aside}':            payload.get('set_aside', ''),
-    '\${type_of_system}':       type_of_system,
-    '\${bid_submission_style}': payload.get('bid_submission_style', ''),
-    '\${mandatory_site_visit}': payload.get('mandatory_site_visit', ''),
-    '\${match_score}':          str(score),
-    '\${score_color}':          score_color,
-    '\${status_badge}':         payload.get('status', 'QUALIFIED'),
-    '\${scope_summary}':        payload.get('scope_summary', ''),
-    '\${red_flags}':            red_flags,
-    '\${poc_name}':             payload.get('contact_name', ''),
-    '\${poc_email}':            payload.get('contact_email', ''),
-    '\${notice_id}':            payload.get('notice_id', ''),
-    '\${routine_fire_url}':     routine_fire_url,
-    '\${routine_bearer_token}': routine_bearer_token,
-    '\${push_payload_json}':    push_payload_json,
-}
-
-for k, v in replacements.items():
-    card_str = card_str.replace(k, str(v))
-
-parsed = json.loads(card_str)
-print(json.dumps(parsed))
-PYEOF
-}
 
 # --- GET OR CACHE TOKEN ---
 get_token() {
   if [ -f "$TOKEN_CACHE" ]; then
     CACHED_EXPIRY=$(python3 -c "
-import json, time
+import json
 with open('${TOKEN_CACHE}') as f:
-    cache = json.load(f)
-print(cache.get('expires_at', 0))
+    print(json.load(f).get('expires_at', 0))
 " 2>/dev/null)
     NOW=$(python3 -c "import time; print(int(time.time()))")
     if [ "$CACHED_EXPIRY" -gt "$NOW" ] 2>/dev/null; then
@@ -169,11 +101,11 @@ with open('${TOKEN_CACHE}') as f:
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "grant_type=client_credentials&client_id=${APP_ID}&client_secret=${CLIENT_SECRET}&scope=https://api.botframework.com/.default")
 
-  ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+  ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
 
   if [ -z "$ACCESS_TOKEN" ]; then
     echo "ERROR: Failed to get token."
-    echo $TOKEN_RESPONSE | python3 -m json.tool 2>/dev/null || echo $TOKEN_RESPONSE
+    echo "$TOKEN_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$TOKEN_RESPONSE"
     return 1
   fi
 
@@ -216,11 +148,11 @@ print(cache.get('${user_id}', ''))
       \"tenantId\": \"${TENANT_ID}\"
     }")
 
-  CONV_ID=$(echo $CONV_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+  CONV_ID=$(echo "$CONV_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 
   if [ -z "$CONV_ID" ]; then
     echo "ERROR: Failed to create conversation."
-    echo $CONV_RESPONSE | python3 -m json.tool 2>/dev/null || echo $CONV_RESPONSE
+    echo "$CONV_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$CONV_RESPONSE"
     return 1
   fi
 
@@ -238,150 +170,84 @@ with open('${CONV_CACHE}', 'w') as f:
   return 0
 }
 
-# --- SEND ---
+# --- BUILD + SEND MESSAGE ---
 send_message() {
   local summary="${SUBJECT_LINE:-Stamp approval required}"
+  local cards_dir
+  cards_dir=$(mktemp -d)
 
-  if [ "$STACKED" = true ] && [ ${#PAYLOAD_FILES[@]} -gt 1 ]; then
-    # Build one message with multiple attachments stacked
-    ATTACHMENTS_JSON=$(python3 << PYEOF
-import json, subprocess, sys
+  # Populate each payload into a card JSON file via Python helper
+  local idx=0
+  for pf in "${PAYLOAD_FILES[@]}"; do
+    local out="${cards_dir}/card-${idx}.json"
+    if ! python3 "${POPULATE_SCRIPT}" "${CARD_FILE}" "${pf}" > "${out}"; then
+      echo "ERROR: Failed to populate card for ${pf}"
+      rm -rf "${cards_dir}"
+      return 1
+    fi
+    idx=$((idx + 1))
+  done
 
-payload_files = [$(printf '"%s",' "${PAYLOAD_FILES[@]}" | sed 's/,$//')]
-attachments = []
-
-for pf in payload_files:
-    result = subprocess.run(
-        ['bash', '${SCRIPT_DIR}/send-stamp.sh'],
-        capture_output=False
-    )
-
-# Actually populate each card inline
+  # Build message body (like pixel's: card(s) wrapped in attachments)
+  BODY=$(python3 - "$cards_dir" "$summary" <<'PYEOF'
+import json, os, sys, glob
+cards_dir, summary = sys.argv[1], sys.argv[2]
 cards = []
-for pf in payload_files:
-    import os
-    from datetime import datetime
-
-    with open(pf) as f:
-        payload = json.load(f)
-    with open('${CARD_FILE}') as f:
-        card_str = f.read()
-
-    try:
-        deadline_dt = datetime.strptime(payload.get('deadline',''), '%Y-%m-%d')
-        days_rem = (deadline_dt - datetime.today()).days
-        days_remaining = f"{days_rem} day{'s' if days_rem != 1 else ''}"
-    except:
-        days_remaining = 'check SAM.gov'
-
-    score = payload.get('ct_score', 5)
-    score_color = 'good' if score >= 7 else ('warning' if score >= 4 else 'attention')
-    tos = payload.get('type_of_system', [])
-    type_of_system = ', '.join(tos) if isinstance(tos, list) else str(tos)
-    warnings = payload.get('warnings', [])
-    red_flags_lines = []
-    for w in warnings[:3]:
-        prefix = 'Red: ' if any(k in w.lower() for k in ['mandatory','clearance','scif','overseas','sla','install window','training']) else 'Yellow: '
-        red_flags_lines.append(prefix + w)
-    red_flags = '\n'.join(red_flags_lines) if red_flags_lines else 'No flags'
-    push_payload_json = json.dumps(payload).replace('"', '\\"')
-    routine_fire_url = 'https://api.anthropic.com/v1/claude_code/routines/trig_01PFRCg73uCRpzGkG9wn2J2G/fire'
-    routine_bearer_token = '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'
-
-    replacements = {
-        '\${title}': payload.get('title',''),
-        '\${sol_number}': payload.get('sol_num',''),
-        '\${agency}': payload.get('account_name',''),
-        '\${location}': payload.get('location',''),
-        '\${deadline}': payload.get('bid_due_date',''),
-        '\${days_remaining}': days_remaining,
-        '\${set_aside}': payload.get('set_aside',''),
-        '\${type_of_system}': type_of_system,
-        '\${bid_submission_style}': payload.get('bid_submission_style',''),
-        '\${mandatory_site_visit}': payload.get('mandatory_site_visit',''),
-        '\${match_score}': str(score),
-        '\${score_color}': score_color,
-        '\${status_badge}': payload.get('status','QUALIFIED'),
-        '\${scope_summary}': payload.get('scope_summary',''),
-        '\${red_flags}': red_flags,
-        '\${poc_name}': payload.get('contact_name',''),
-        '\${poc_email}': payload.get('contact_email',''),
-        '\${notice_id}': payload.get('notice_id',''),
-        '\${routine_fire_url}': routine_fire_url,
-        '\${routine_bearer_token}': routine_bearer_token,
-        '\${push_payload_json}': push_payload_json,
-    }
-    for k, v in replacements.items():
-        card_str = card_str.replace(k, str(v))
-
-    cards.append(json.loads(card_str))
-
-attachments = [{'contentType': 'application/vnd.microsoft.card.adaptive', 'content': c} for c in cards]
-print(json.dumps(attachments))
+for p in sorted(glob.glob(os.path.join(cards_dir, "card-*.json"))):
+    with open(p) as f:
+        cards.append(json.load(f))
+payload = {
+    "type": "message",
+    "summary": summary,
+    "attachments": [
+        {"contentType": "application/vnd.microsoft.card.adaptive", "content": c}
+        for c in cards
+    ],
+}
+print(json.dumps(payload))
 PYEOF
 )
 
-    BODY=$(python3 -c "
-import json, sys
-attachments = json.loads('''${ATTACHMENTS_JSON}''')
-payload = {
-    'type': 'message',
-    'summary': $(python3 -c "import json; print(json.dumps('${summary}'))"),
-    'attachments': attachments
-}
-print(json.dumps(payload))
-" 2>/dev/null)
-
-  else
-    # Single card
-    POPULATED=$(populate_card "${PAYLOAD_FILES[0]}")
-    if [ -z "$POPULATED" ]; then
-      echo "ERROR: Failed to populate card."; exit 1
-    fi
-
-    BODY=$(python3 -c "
-import json
-card = json.loads('''${POPULATED}''')
-payload = {
-    'type': 'message',
-    'summary': $(python3 -c "import json; print(json.dumps('${summary}'))"),
-    'attachments': [{'contentType': 'application/vnd.microsoft.card.adaptive', 'content': card}]
-}
-print(json.dumps(payload))
-" 2>/dev/null)
-  fi
+  rm -rf "${cards_dir}"
 
   if [ -z "$BODY" ]; then
-    echo "ERROR: Failed to build message body."; exit 1
+    echo "ERROR: Failed to build message body."
+    return 1
   fi
 
-  MSG_RESPONSE=$(curl -s -X POST \
+  MSG_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
     "${SERVICE_URL}/v3/conversations/${CONV_ID}/activities" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
     -d "$BODY")
 
-  MSG_ID=$(echo $MSG_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+  HTTP_CODE=$(echo "$MSG_RESPONSE" | tail -1)
+  BODY_RESP=$(echo "$MSG_RESPONSE" | sed '$d')
 
-  if [ -z "$MSG_ID" ]; then
-    echo "ERROR: Failed to send message."
-    echo $MSG_RESPONSE | python3 -m json.tool 2>/dev/null || echo $MSG_RESPONSE
-    return 1
+  # Teams Bot Framework returns 200/201/202 on success
+  if [[ "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]]; then
+    MSG_ID=$(echo "$BODY_RESP" | python3 -c "import sys,json; d=sys.stdin.read().strip(); print(json.loads(d).get('id','(accepted, no id)') if d else '(accepted, no body)')" 2>/dev/null)
+    echo "🛡️ Sent ${#PAYLOAD_FILES[@]} card(s) in one message. HTTP ${HTTP_CODE}. Activity: ${MSG_ID}"
+    return 0
   fi
 
-  echo "Sent ${#PAYLOAD_FILES[@]} card(s) in one message. Activity ID: ${MSG_ID}"
-  return 0
+  echo "ERROR: Send failed with HTTP ${HTTP_CODE}"
+  echo "$BODY_RESP" | python3 -m json.tool 2>/dev/null || echo "$BODY_RESP"
+  return 1
 }
 
 # --- MAIN ---
-echo "=== Stamp Messenger ==="
+echo "=== 🛡️ Stamp Messenger ==="
 echo ""
 
 get_token || exit 1
 echo ""
+
 get_conversation "$AZURE_ID" || exit 1
 echo ""
-echo "Sending card(s)..."
+
+echo "Populating and sending card(s)..."
 send_message || exit 1
+
 echo ""
 echo "=== Done ==="
