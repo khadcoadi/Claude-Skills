@@ -17,8 +17,65 @@ creates a properly structured Deal in Zoho CRM. Checks for an existing
 account first, creates one if needed following CT's account naming rules,
 then creates the Deal with all available fields populated.
 
-Always show a confirmation summary and get explicit approval before
-creating anything in CRM.
+---
+
+## Invocation modes
+
+This skill runs in one of two modes. Behavior differs slightly.
+
+### Mode A — Interactive (human in loop)
+
+Invoked when a user types "push to CRM", "add to Zoho", etc. with the
+opportunity payload either in the session context or pointed to by a
+file path.
+
+- Follow all steps below including Step 4 (confirmation summary) —
+  wait for explicit "yes" before creating the Deal
+- On any error, stop and ask the user how to proceed
+
+### Mode B — Webhook (Stamp approval fire)
+
+Invoked when Adi clicks **Approve** on a Stamp gov-bid approval card.
+The Azure Function bot handler fires the push routine's `/fire` endpoint
+with the serialized payload in the `text` field. Claude receives the
+routine message with this `text` value as the user prompt.
+
+**Parse the payload at the start of the session:**
+
+```python
+import json
+# Claude's user prompt IS the serialized payload from the Stamp card
+payload = json.loads(user_prompt_text)
+```
+
+**Mode B differences:**
+- **Skip Step 4 confirmation.** Adi's click on the Stamp card WAS the
+  confirmation. Proceed straight from Step 1 → 2 → 3 → 5 → 6.
+- **Re-run the Step 0 dedup check** (see below) — belt-and-suspenders
+  in case two cards got approved for the same opp.
+- **On any error, send Adi a Stamp plain-text message** — see "Error
+  handling" section at the end of this skill. Then exit non-zero.
+
+---
+
+## Step 0 — Dedup check (required in both modes)
+
+Before doing any account lookup or Deal creation, confirm this
+opportunity isn't already in CRM:
+
+```python
+sam_url = payload["sam_url"]
+query = f"SELECT id, Deal_Name, Stage FROM Deals WHERE Bid_Link = '{sam_url}' LIMIT 1"
+# Run via ZohoCRM_executeCOQLQuery
+```
+
+- If a Deal exists → log `Already in CRM: {Deal_Name} ({Stage}) — skipping push`
+  and exit cleanly. Do NOT send Adi an error (this is not a failure).
+- If no Deal exists → proceed to Step 1.
+
+In Mode B this check prevents duplicates if the user accidentally
+approved the same card twice or if the scanner's Step 10 dedup missed
+a recently-created Deal.
 
 ---
 
@@ -356,3 +413,51 @@ These rules govern all government account creation in Zoho CRM:
 | Department of Defense | `1351252000186118067` *(do not use for new bids)* |
 | Department of the Interior | `1351252000204499674` |
 | Indiana National Guard | `1351252000179468059` |
+
+---
+
+## Error handling (Mode B — webhook)
+
+When this skill runs via the Stamp approval webhook, there is no user
+in session to answer questions. Any failure that would otherwise
+prompt the user must instead notify Adi via Stamp plain-text DM.
+
+**When to send an error message to Adi:**
+- Account lookup returns multiple matches and the correct one is
+  ambiguous
+- Account creation fails
+- Deal creation fails (validation error, required field missing,
+  Zoho API error)
+- SAM.gov document fetch fails or returns no attachments
+- Any uncaught exception during Steps 1–6
+
+**How to send:**
+
+Use the `stamp-messenger` skill's text mode (`send-stamp-text.sh`):
+
+```bash
+bash /home/user/Claude-Skills/.claude/skills/stamp-messenger/send-stamp-text.sh \
+  --recipient "Adi Khanna" \
+  --message "⚠️ CRM push failed for ${sol_num} — ${title}
+
+Error: ${error_msg}
+
+Manual attention needed."
+```
+
+**Message format:**
+
+```
+⚠️ CRM push failed for {sol_num} — {title}
+
+Error: {short error message}
+
+Manual attention needed.
+```
+
+Include sol_num + title in the subject/first line so Adi knows which
+opp. Keep it short — one or two lines plus the error. Do not paste
+stack traces or full payloads; the log will have those.
+
+After sending the error message, exit the skill non-zero so the
+routine logs the failure.
