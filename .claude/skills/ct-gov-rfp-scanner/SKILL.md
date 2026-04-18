@@ -20,6 +20,32 @@ and all documents available for download.
 
 ---
 
+## Execution Discipline (scheduled/unattended runs)
+
+This skill runs on a schedule with no human watching. A turn that emits
+only narration or a question will silently end the run mid-flight, because
+there is nobody to reply. Follow these rules:
+
+- **Every assistant turn must contain at least one tool call** until you
+  emit the final one-line completion log (either the "No new gov AV opps"
+  line or the stamp-messenger send). No exceptions.
+- **Do not narrate intent.** Do not write "Now I'll...", "Next, I'll...",
+  "Building payloads...", or any other transition sentence as a standalone
+  message. Execute directly.
+- **Do not ask clarifying questions.** If information is missing or
+  ambiguous, pick the most defensible default based on the skill's rules
+  and continue. Log the assumption in the final summary if it's material.
+- **Never end a turn with a question.** A question with no tool call is a
+  dead stop in unattended mode.
+- **Brief updates are fine**, but only when attached to a tool call in the
+  same turn (e.g., one sentence of context + the next Bash/Edit/Skill
+  call). Standalone text = silent failure.
+
+If you catch yourself about to output narration-only text, replace it with
+the next concrete tool call instead.
+
+---
+
 ## Known SAM.gov API Quirks
 
 **Critical:** The v2 endpoint silently ignores `naicsCode`,
