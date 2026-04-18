@@ -174,13 +174,30 @@ with all sections below. This is the primary deliverable.
 - SAM.gov URL: `https://sam.gov/opp/{noticeId}/view`
 
 ### 7b. Scope narrative
-Write 3–5 sentences summarizing what the work actually is. Cover:
+Write a detailed paragraph (or several) covering the full scope. Cover:
 - What facility / room type / installation
 - What the contractor is replacing or building new
 - Primary system categories involved (display, audio, control, networking)
 - Deliverable format (turnkey, equipment-only, design-build, maintenance)
-- Warranty requirements — stated duration, whether extended support is required or optional, remote diagnostics, and whether labor is included; note if no warranty term is specified (defaults to manufacturer only, no labor)
-- Training and technical support deliverables — on-site training days required, whether ongoing technical support is mandated, manuals/documentation due dates
+
+**CLIN-level equipment breakdown (required when applicable):** If the
+solicitation has multiple CLINs with distinct bills of materials, list
+each CLIN inline in the scope paragraph with its specific equipment.
+Example: `CLIN 0001 — Classrooms 120, 113, 124: 10× 98" 4K UHD LED
+displays, 2× 86" interactive touchscreens, 2× 10.1" touch panels...`
+Do not collapse CLINs into a single generic summary when each CLIN has
+distinct equipment — the reviewer needs to see what's actually being
+asked for at the line-item level.
+
+**Warranty subsection (required):** State duration, whether extended
+support is required or optional, remote diagnostics, and whether labor
+is included. Note if no warranty term is specified (defaults to
+manufacturer only, no labor).
+
+**Training / Docs subsection (required):** On-site training days
+required, whether ongoing technical support is mandated, manuals and
+documentation deliverables (as-built drawings, signal flow diagrams,
+quick-start guides, maintenance guidelines).
 
 ### 7c. Programming and control system analysis *(required)*
 Explicitly call out what programming and functional configuration is
