@@ -1,0 +1,158 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "⚡",
+              "size": "large"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "PIXEL",
+              "weight": "bolder",
+              "size": "small",
+              "color": "good",
+              "spacing": "none"
+            },
+            {
+              "type": "TextBlock",
+              "text": "New Gov Bid in CRM",
+              "weight": "bolder",
+              "size": "medium",
+              "spacing": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${title}",
+                  "weight": "bolder",
+                  "size": "medium",
+                  "wrap": true
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "${sol_number} · ${agency}",
+                  "size": "small",
+                  "isSubtle": true,
+                  "wrap": true,
+                  "spacing": "none"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "verticalContentAlignment": "center",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "text": "${match_score}",
+                  "weight": "bolder",
+                  "size": "extraLarge",
+                  "color": "${score_color}",
+                  "horizontalAlignment": "right"
+                },
+                {
+                  "type": "TextBlock",
+                  "text": "CT match",
+                  "size": "small",
+                  "isSubtle": true,
+                  "horizontalAlignment": "right",
+                  "spacing": "none"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "spacing": "small",
+      "facts": [
+        { "title": "Location",   "value": "${location}" },
+        { "title": "Due",        "value": "${deadline} · ${days_remaining}" },
+        { "title": "Set-aside",  "value": "${set_aside}" },
+        { "title": "System",     "value": "${type_of_system}" },
+        { "title": "Submission", "value": "${bid_submission_style}" },
+        { "title": "POC",        "value": "${poc_name} · ${poc_email}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "SCOPE",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${scope_summary}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "FLAGS",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${red_flags}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Deal created in Zoho · ${deal_created_at}",
+      "size": "small",
+      "isSubtle": true,
+      "spacing": "medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open in Zoho CRM",
+      "url": "${zoho_deal_url}"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "View on SAM.gov",
+      "url": "https://sam.gov/opp/${notice_id}/view"
+    }
+  ]
+}
