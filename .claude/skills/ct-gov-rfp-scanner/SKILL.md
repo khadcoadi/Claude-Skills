@@ -174,13 +174,30 @@ with all sections below. This is the primary deliverable.
 - SAM.gov URL: `https://sam.gov/opp/{noticeId}/view`
 
 ### 7b. Scope narrative
-Write 3–5 sentences summarizing what the work actually is. Cover:
+Write a detailed paragraph (or several) covering the full scope. Cover:
 - What facility / room type / installation
 - What the contractor is replacing or building new
 - Primary system categories involved (display, audio, control, networking)
 - Deliverable format (turnkey, equipment-only, design-build, maintenance)
-- Warranty requirements — stated duration, whether extended support is required or optional, remote diagnostics, and whether labor is included; note if no warranty term is specified (defaults to manufacturer only, no labor)
-- Training and technical support deliverables — on-site training days required, whether ongoing technical support is mandated, manuals/documentation due dates
+
+**CLIN-level equipment breakdown (required when applicable):** If the
+solicitation has multiple CLINs with distinct bills of materials, list
+each CLIN inline in the scope paragraph with its specific equipment.
+Example: `CLIN 0001 — Classrooms 120, 113, 124: 10× 98" 4K UHD LED
+displays, 2× 86" interactive touchscreens, 2× 10.1" touch panels...`
+Do not collapse CLINs into a single generic summary when each CLIN has
+distinct equipment — the reviewer needs to see what's actually being
+asked for at the line-item level.
+
+**Warranty subsection (required):** State duration, whether extended
+support is required or optional, remote diagnostics, and whether labor
+is included. Note if no warranty term is specified (defaults to
+manufacturer only, no labor).
+
+**Training / Docs subsection (required):** On-site training days
+required, whether ongoing technical support is mandated, manuals and
+documentation deliverables (as-built drawings, signal flow diagrams,
+quick-start guides, maintenance guidelines).
 
 ### 7c. Programming and control system analysis *(required)*
 Explicitly call out what programming and functional configuration is
@@ -273,9 +290,17 @@ The scanner does NOT download documents. Document downloading and
 attachment to CRM is handled by the ct-gov-potential-push skill at
 push time, using the notice ID to re-fetch fresh files from SAM.gov.
 
-For each QUALIFIED or WARNING opportunity, build a structured push
-payload to be included in the Stamp approval card and passed to the
-push routine's API trigger if approved:
+For each QUALIFIED or WARNING opportunity (except Presolicitations —
+see Step 10), build a structured push payload that feeds both the
+Stamp approval card (what Adi sees at review time) and the push
+routine (what fires into CRM on approval).
+
+**Required fields — synthesized per-opportunity from the actual
+document corpus. Do not use generic templates or placeholders.** The
+scope_summary, programming_scope, detailed_flags, and description
+fields must reflect real findings from that specific solicitation's
+SOW/amendment/Q&A text — include brand names, part numbers, CLINs,
+delivery terms, and base-specific requirements where present.
 
 ```json
 {
@@ -288,19 +313,28 @@ push routine's API trigger if approved:
   "location": "Robins AFB, GA",
   "sam_url": "https://sam.gov/opp/{notice_id}/view",
   "amount": null,
+  "set_aside": "Total Small Business",
   "type_of_system": ["Meeting Space"],
   "mandatory_site_visit": "No",
   "bid_submission_style": "Email",
+  "contact_name": "Patrick Madan",
   "contact_email": "patrick.madan.2@us.af.mil",
   "contact_phone": "478-222-4098",
   "questions_due_date": "Mar 13, 2026 4:30 PM EDT",
   "response_date": "Mar 23, 2026 4:30 PM EDT",
-  "description": "[full 7-section brief text]",
+  "scope_summary": "[3–5 sentence scope narrative with specifics: part numbers, quantities, delivery terms, warranty, occupancy impact. This is what appears on the card's SCOPE section — must stand on its own.]",
+  "programming_scope": "[Assessment of whether the job needs a control programmer, a DSP programmer, an install tech, or just supply. Name platforms if called out (Crestron, QSC, Biamp, Extron, Shure). If no platform is named, state that explicitly and note what skill level is needed based on scope. Covers the card's PROGRAMMING & CUSTOM WORK section.]",
+  "detailed_flags": "[Multi-line string, one flag per line, each prefixed with an emoji: 🔴 hard risk, 🟡 pricing risk, 🔵 admin overhead, 🟢 helpful info. Each flag has a short bold label and a 1-sentence impact statement. Include ALL material flags from the corpus — CDRLs, base access, safety plans, continued occupancy, warranty, Davis-Bacon, TAA, WAWF/PIEE, etc. This is what appears on the card's FLAGS section.]",
+  "description": "[Full 7-section brief text — markdown formatted. Flows into the CRM Deal Description on approval. Must match the depth of the template in Step 7a–7f.]",
   "ct_score": 5,
   "status": "QUALIFIED",
-  "warnings": []
+  "warnings": ["short label 1", "short label 2"]
 }
 ```
+
+The `warnings` array remains as short labels (used for scoring and
+summary table). The `detailed_flags` string is the human-facing
+formatted version on the card.
 
 This payload is serialized as JSON and passed as the `text` field
 when the push routine's `/fire` endpoint is called.
@@ -353,9 +387,19 @@ expired opportunities worth watching for re-solicitation.
 
 ## Step 10 — CRM dedup check + Send Stamp approval cards
 
-Before sending any Stamp cards, check Zoho CRM to see if a Deal already
-exists for each qualifying opportunity. Only send cards for opps that
-are not yet in CRM.
+Before sending any Stamp cards:
+
+1. **Exclude Presolicitations from the Stamp batch.** Presolicitations
+   (SAM.gov notice type `Presolicitation`) are advance notice only —
+   no bid can be submitted yet. Keep them in the Step 8 summary table
+   so they're visible, but do NOT send Stamp approval cards for them
+   and do NOT write payload files for them. When the follow-on actual
+   solicitation is posted (type `Solicitation` or `Combined Synopsis/
+   Solicitation`), a future scan will pick it up and send the card.
+
+2. Check Zoho CRM to see if a Deal already exists for each of the
+   remaining qualifying opportunities. Only send cards for opps that
+   are not yet in CRM.
 
 ### 10a — Dedup check
 

@@ -19,6 +19,10 @@ directly (webhook, API endpoint, etc.) and a Skip button to dismiss.
 One message per approval batch. Multiple opportunities/items stack as
 multiple cards in a single message via `--stacked`.
 
+**Two send modes:**
+- **Card mode (`send-stamp.sh`)** — adaptive approval cards with Approve/Skip buttons. Used for approval flows.
+- **Text mode (`send-stamp-text.sh`)** — plain-text DM. Used for error notifications, alerts, or simple status updates where no button is needed.
+
 ---
 
 ## Usage
@@ -153,6 +157,29 @@ an empty subject means the notification preview is blank.
 Tokens cached 50 min at `/tmp/stamp-token-cache.json`.
 Conversations cached at `/tmp/stamp-conversations.json`.
 Both keyed separately from adiai-messenger.
+
+---
+
+## Plain-text notifications (text mode)
+
+For non-approval notifications — error alerts, "manual attention needed"
+pings, simple status updates — use the text variant:
+
+```bash
+bash send-stamp-text.sh \
+  --recipient "Adi Khanna" \
+  --message "⚠️ CRM push failed for FA850126Q0016 — Replace Bowling Alley Sound System. Manual attention needed."
+```
+
+Same credentials, same token/conversation caches. No card template,
+no payload, no buttons — just a text DM. Keep messages short (one
+line subject + one line detail is ideal).
+
+**When to use text mode vs card mode:**
+- **Text mode** — error alerts, system failures, status FYIs. No user
+  action needed, just a heads-up.
+- **Card mode** — approval flows where the user clicks Approve/Skip
+  to trigger downstream action.
 
 ---
 

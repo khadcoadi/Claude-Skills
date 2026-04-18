@@ -1,20 +1,13 @@
 #!/bin/bash
 # ============================================
-# Stamp Messenger — Send Teams DM Approval Card(s)
+# Stamp Messenger — Send plain-text DM
 #
-# Usage (single card):
-#   bash send-stamp.sh --recipient "Adi Khanna" \
-#     --subject "Subject line" --card /path/card-template.json \
-#     --payload /tmp/payload.json
+# Use for error notifications, system alerts, or anywhere a
+# simple text message is better than an approval card.
 #
-# Usage (stacked — all cards in one message):
-#   bash send-stamp.sh --recipient "Adi Khanna" \
-#     --subject "Subject line" --card /path/card-template.json \
-#     --payload /tmp/payload1.json --payload /tmp/payload2.json \
-#     --stacked
-#
-# Card populate logic lives in populate-card.py so we avoid bash
-# heredoc escape hell. Send logic mirrors ct-pixel-bot/send-message.sh.
+# Usage:
+#   bash send-stamp-text.sh --recipient "Adi Khanna" \
+#     --message "⚠️ CRM push failed for FA850126Q0016 — Replace Bowling Alley Sound System. Manual attention needed."
 # ============================================
 
 TENANT_ID="609b5b72-9a87-4376-825b-20726d50a60b"
@@ -24,34 +17,25 @@ CLIENT_SECRET="g4D8Q~UFYfFP3Jmd_76VXKWLWjY6ANO8ixIkVb17"
 SERVICE_URL="https://smba.trafficmanager.net/teams"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROSTER_FILE="${SCRIPT_DIR}/references/team-roster.json"
-POPULATE_SCRIPT="${SCRIPT_DIR}/populate-card.py"
 TOKEN_CACHE="/tmp/stamp-token-cache.json"
 CONV_CACHE="/tmp/stamp-conversations.json"
 
-# --- PARSE ARGS ---
 RECIPIENT_NAME=""
-SUBJECT_LINE=""
-CARD_FILE=""
-PAYLOAD_FILES=()
-STACKED=false
+MESSAGE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --recipient) RECIPIENT_NAME="$2"; shift 2 ;;
-    --subject)   SUBJECT_LINE="$2";   shift 2 ;;
-    --card)      CARD_FILE="$2";      shift 2 ;;
-    --payload)   PAYLOAD_FILES+=("$2"); shift 2 ;;
-    --stacked)   STACKED=true; shift ;;
+    --message)   MESSAGE="$2";        shift 2 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
 
-if [ -z "$RECIPIENT_NAME" ] || [ -z "$CARD_FILE" ] || [ ${#PAYLOAD_FILES[@]} -eq 0 ]; then
-  echo "ERROR: --recipient, --card, and at least one --payload are required."
+if [ -z "$RECIPIENT_NAME" ] || [ -z "$MESSAGE" ]; then
+  echo "ERROR: --recipient and --message are required."
   exit 1
 fi
 
-# --- LOOK UP RECIPIENT ---
 AZURE_ID=$(python3 -c "
 import json, sys
 with open('${ROSTER_FILE}') as f:
@@ -71,9 +55,8 @@ if [ -z "$AZURE_ID" ]; then
   exit 1
 fi
 
-echo "🛡️ Stamp Bot"
+echo "🛡️ Stamp Text"
 echo "Recipient: ${RECIPIENT_NAME} (${AZURE_ID})"
-echo "Payloads: ${#PAYLOAD_FILES[@]} | Stacked: ${STACKED}"
 
 # --- GET OR CACHE TOKEN ---
 get_token() {
@@ -90,12 +73,10 @@ import json
 with open('${TOKEN_CACHE}') as f:
     print(json.load(f)['access_token'])
 " 2>/dev/null)
-      echo "Using cached token."
       return 0
     fi
   fi
 
-  echo "Fetching new token..."
   TOKEN_RESPONSE=$(curl -s -X POST \
     "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
@@ -105,7 +86,6 @@ with open('${TOKEN_CACHE}') as f:
 
   if [ -z "$ACCESS_TOKEN" ]; then
     echo "ERROR: Failed to get token."
-    echo "$TOKEN_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$TOKEN_RESPONSE"
     return 1
   fi
 
@@ -115,7 +95,6 @@ cache = {'access_token': '${ACCESS_TOKEN}', 'expires_at': int(time.time()) + 300
 with open('${TOKEN_CACHE}', 'w') as f:
     json.dump(cache, f)
 "
-  echo "Token acquired and cached."
   return 0
 }
 
@@ -130,12 +109,10 @@ with open('${CONV_CACHE}') as f:
 print(cache.get('${user_id}', ''))
 " 2>/dev/null)
     if [ -n "$CONV_ID" ]; then
-      echo "Using cached conversation."
       return 0
     fi
   fi
 
-  echo "Creating conversation..."
   CONV_RESPONSE=$(curl -s -X POST \
     "${SERVICE_URL}/v3/conversations" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
@@ -166,56 +143,15 @@ cache['${user_id}'] = '${CONV_ID}'
 with open('${CONV_CACHE}', 'w') as f:
     json.dump(cache, f, indent=2)
 "
-  echo "Conversation created and cached."
   return 0
 }
 
-# --- BUILD + SEND MESSAGE ---
-send_message() {
-  local summary="${SUBJECT_LINE:-Stamp approval required}"
-  local cards_dir
-  cards_dir=$(mktemp -d)
-
-  # Populate each payload into a card JSON file via Python helper
-  local idx=0
-  for pf in "${PAYLOAD_FILES[@]}"; do
-    local out="${cards_dir}/card-${idx}.json"
-    if ! python3 "${POPULATE_SCRIPT}" "${CARD_FILE}" "${pf}" > "${out}"; then
-      echo "ERROR: Failed to populate card for ${pf}"
-      rm -rf "${cards_dir}"
-      return 1
-    fi
-    idx=$((idx + 1))
-  done
-
-  # Build message body (like pixel's: card(s) wrapped in attachments)
-  BODY=$(python3 - "$cards_dir" "$summary" <<'PYEOF'
-import json, os, sys, glob
-cards_dir, summary = sys.argv[1], sys.argv[2]
-cards = []
-for p in sorted(glob.glob(os.path.join(cards_dir, "card-*.json"))):
-    with open(p) as f:
-        cards.append(json.load(f))
-payload = {
-    "type": "message",
-    "summary": summary,
-    "attachments": [
-        {"contentType": "application/vnd.microsoft.card.adaptive", "content": c}
-        for c in cards
-    ],
-}
-if len(cards) > 1:
-    payload["attachmentLayout"] = "carousel"
-print(json.dumps(payload))
-PYEOF
-)
-
-  rm -rf "${cards_dir}"
-
-  if [ -z "$BODY" ]; then
-    echo "ERROR: Failed to build message body."
-    return 1
-  fi
+send_text() {
+  BODY=$(python3 -c "
+import json, sys
+msg = sys.argv[1]
+print(json.dumps({'type': 'message', 'text': msg}))
+" "$MESSAGE")
 
   MSG_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
     "${SERVICE_URL}/v3/conversations/${CONV_ID}/activities" \
@@ -226,30 +162,16 @@ PYEOF
   HTTP_CODE=$(echo "$MSG_RESPONSE" | tail -1)
   BODY_RESP=$(echo "$MSG_RESPONSE" | sed '$d')
 
-  # Teams Bot Framework returns 200/201/202 on success
   if [[ "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]]; then
-    MSG_ID=$(echo "$BODY_RESP" | python3 -c "import sys,json; d=sys.stdin.read().strip(); print(json.loads(d).get('id','(accepted, no id)') if d else '(accepted, no body)')" 2>/dev/null)
-    echo "🛡️ Sent ${#PAYLOAD_FILES[@]} card(s) in one message. HTTP ${HTTP_CODE}. Activity: ${MSG_ID}"
+    echo "🛡️ Text sent. HTTP ${HTTP_CODE}."
     return 0
   fi
 
   echo "ERROR: Send failed with HTTP ${HTTP_CODE}"
-  echo "$BODY_RESP" | python3 -m json.tool 2>/dev/null || echo "$BODY_RESP"
+  echo "$BODY_RESP"
   return 1
 }
 
-# --- MAIN ---
-echo "=== 🛡️ Stamp Messenger ==="
-echo ""
-
 get_token || exit 1
-echo ""
-
 get_conversation "$AZURE_ID" || exit 1
-echo ""
-
-echo "Populating and sending card(s)..."
-send_message || exit 1
-
-echo ""
-echo "=== Done ==="
+send_text || exit 1

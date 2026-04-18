@@ -95,6 +95,20 @@
     },
     {
       "type": "TextBlock",
+      "text": "PROGRAMMING & CUSTOM WORK",
+      "weight": "bolder",
+      "size": "small",
+      "spacing": "medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "${programming_scope}",
+      "wrap": true,
+      "size": "small"
+    },
+    {
+      "type": "TextBlock",
       "text": "FLAGS",
       "weight": "bolder",
       "size": "small",
@@ -103,7 +117,7 @@
     },
     {
       "type": "TextBlock",
-      "text": "${red_flags}",
+      "text": "${detailed_flags}",
       "wrap": true,
       "size": "small"
     },
@@ -117,17 +131,13 @@
   ],
   "actions": [
     {
-      "type": "Action.Http",
+      "type": "Action.Submit",
       "title": "Approve — push to CRM",
-      "method": "POST",
-      "url": "${routine_fire_url}",
-      "headers": [
-        { "name": "Authorization", "value": "Bearer ${routine_bearer_token}" },
-        { "name": "anthropic-beta", "value": "experimental-cc-routine-2026-04-01" },
-        { "name": "anthropic-version", "value": "2023-06-01" },
-        { "name": "Content-Type", "value": "application/json" }
-      ],
-      "body": "{\"text\": \"${push_payload_json}\"}"
+      "data": {
+        "action": "approve",
+        "sol_num": "${sol_number}",
+        "push_payload": "${push_payload_json}"
+      }
     },
     {
       "type": "Action.OpenUrl",
