@@ -329,17 +329,22 @@ for i, link in enumerate(links):
 ```
 
 **File type detection:** Use `subprocess.run(['file', fpath])` to detect
-type. Skip JPEG/image-only files — attach text documents only
-(PDF, DOCX, XLSX). Flag scanned drawing PDFs as unreadable but still
-attach them so the full solicitation package is in the record.
+type. **Attach every file** that SAM.gov returns — PDF, DOCX, XLSX, and
+images (JPEG/PNG) alike. Site-visit photos and drawing images are often
+the only visual record CT has of the space and must go into the Deal.
+Flag scanned drawing PDFs as unreadable but still attach them so the
+full solicitation package is in the record.
 
 **Naming convention:** Rename files with clean names before attaching:
 `{SOL_SHORT}_{DocType}.{ext}`
-Examples: `FA857_QandA.pdf`, `FA857_PurchaseDescription.pdf`
+Examples: `FA857_QandA.pdf`, `FA857_PurchaseDescription.pdf`,
+`FA857_SiteVisit_1.jpg`
 
 Use `pdftotext -layout` to peek at the first page of each PDF to
 identify the document type for naming (Q&A, SOW, Purchase Description,
-Amendment, Safety Requirements, etc.).
+Amendment, Safety Requirements, etc.). For images, use a sequential
+`SiteVisit_N` or `Drawing_N` suffix — group by type and number in the
+order returned from SAM.gov.
 
 ### 6c — Attach each file to the Deal
 
